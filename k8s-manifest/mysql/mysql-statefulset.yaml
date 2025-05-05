@@ -43,6 +43,9 @@ spec:
           volumeMounts:
             - name: mysql-data
               mountPath: /var/lib/mysql
+            - name: mysql-config
+              mountPath: /etc/mysql/conf.d/my-custom.cnf
+              subPath: my-custom.cnf
   volumeClaimTemplates:
     - metadata:
         name: mysql-data
@@ -52,3 +55,7 @@ spec:
         resources:
           requests:
             storage: 2Gi
+  volumes: 
+    - name: mysql-config
+      configMap:
+        name: mysql-cm

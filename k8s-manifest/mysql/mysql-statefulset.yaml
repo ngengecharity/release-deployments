@@ -46,6 +46,10 @@ spec:
             - name: mysql-config
               mountPath: /etc/mysql/conf.d/my-custom.cnf
               subPath: my-custom.cnf
+      volumes: 
+        - name: mysql-config
+          configMap:
+            name: mysql-cm 
   volumeClaimTemplates:
     - metadata:
         name: mysql-data
@@ -55,7 +59,3 @@ spec:
         resources:
           requests:
             storage: 2Gi
-  volumes: 
-    - name: mysql-config
-      configMap:
-        name: mysql-cm

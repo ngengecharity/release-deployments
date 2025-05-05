@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:24.0.1
+          args: ["start-dev"]  # use "start" in production
+          ports:
+            - containerPort: 8080
+          env:
+            - name: KC_DB
+              value: mysql
+            - name: DB_VENDOR
+              value: mysql
+            - name: KC_DB_URL
+              value: "jdbc:mysql://mysql.database.svc.cluster.local:3306/keycloak_db"
+            - name: KC_DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: MYSQL_USER
+            - name: KC_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: MYSQL_PASSWORD
+            - name: KEYCLOAK_ADMIN
+              value: admin
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              value: admin
+            # - name: KC_PROXY
+            #   value: edge
+          readinessProbe:
+            httpGet:
+              path: /realms/master
+              port: 8080
+          #   initialDelaySeconds: 20
+          #   periodSeconds: 10
+          # livenessProbe:
+          #   httpGet:
+          #     path: /health/live
+          #     port: 8080
+          #   initialDelaySeconds: 30
+          #   periodSeconds: 10
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+  namespace: keycloak
+type: Opaque
+data:
+  MYSQL_ROOT_PASSWORD: cGFzc3dvcmQ=   # base64 encoded: echo -n 'password' | base64
+  MYSQL_PASSWORD: dXNlcnBhc3M=       # base64 encoded: echo -n 'userpass' | base64
+  MYSQL_USER: ZmluaXNobGluZQ==
+---  
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-keycloak
+  namespace: database
+spec:
+  podSelector:
+    matchLabels:
+      app: mysql
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: keycloak
